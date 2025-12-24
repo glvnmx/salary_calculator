@@ -1,6 +1,7 @@
 # импортируем необходимые модули
 import sys
 from PyQt5.QtWidgets import *
+import matplotlib.pyplot as plt  # импорт matplotlib для графиков
 
 # создаем класс для нашего приложения, наследуемся от qwidget
 class SimpleSalaryCalc(QWidget):
@@ -79,7 +80,7 @@ class SimpleSalaryCalc(QWidget):
         except:
             self.salary_result.setText("Ошибка") #обработка ошибок
     
-    def show_dinamika(self): #метод показа динамики зарплаты
+    def show_dinamika(self): #метод показа динамики зарплаты с гистограммой
         try:
             days = float(self.days_input.text()) #рабочих дней
             worked = float(self.worked_input.text()) #отработанных дней
@@ -89,14 +90,43 @@ class SimpleSalaryCalc(QWidget):
             oklad = self.mrot * self.coeff[grade] #оклад
             salary = oklad * worked / days #текущая зарплата
             
+            #создание гистограммы
+            labels = ['Прошлый месяц', 'Текущий месяц'] #подписи столбцов
+            values = [self.last_salary, salary] #значения зарплат
+            colors = ['blue', 'green'] if salary > self.last_salary else ['blue', 'red'] #цвета столбцов
+            
+            #создание графика
+            plt.figure(figsize=(8, 5)) #размер окна графика
+            bars = plt.bar(labels, values, color=colors, width=0.6) #создание столбцов
+            
+            #добавление значений над столбцами
+            for bar in bars:
+                height = bar.get_height()
+                plt.text(bar.get_x() + bar.get_width()/2, height + 100, 
+                        f'{height:.0f} руб.', ha='center', va='bottom')
+            
+            #настройки графика
+            plt.title(f'Динамика зарплаты\n(больничных дней: {sick_days:.0f})') #заголовок с днями болезни
+            plt.ylabel('Зарплата (руб.)') #подпись оси Y
+            plt.grid(axis='y', alpha=0.3) #горизонтальная сетка
+            plt.ylim(0, max(values) * 1.2) #масштаб оси Y
+            
+            #отображение графика
+            plt.tight_layout()
+            plt.show()
+            
+            #текстовый вывод в поле
             if salary > self.last_salary: #сравнение с прошлым месяцем
                 text = f"↑ На {salary-self.last_salary:.0f} руб." #рост
             else:
                 text = f"↓ На {self.last_salary-salary:.0f} руб." #снижение
             
             self.dinamika_result.setText(f"Болезнь: {sick_days:.0f} дн. {text}") #вывод
-        except:
-            self.dinamika_result.setText("Ошибка") #обработка ошибок
+            
+        except ValueError:
+            self.dinamika_result.setText("Ошибка: введите числа в поля дней")
+        except Exception as e:
+            self.dinamika_result.setText(f"Ошибка: {str(e)}")
 
 #основная часть программы
 app = QApplication(sys.argv) #создания экземпляра приложения QApplication
